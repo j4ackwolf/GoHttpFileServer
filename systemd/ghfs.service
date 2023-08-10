@@ -1,0 +1,13 @@
+[Unit]
+Description=GoHttpFileServer Service
+After=network-online.target
+
+[Service]
+User=root
+ExecStart=/usr/local/bin/ghfs -c /etc/ghfs.conf
+Restart=on-failure
+StandardOutput = file:/tmp/ghfs.log
+
+[Install]
+WantedBy=multi-user.target
+Alias=ghfs.service

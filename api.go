@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -35,7 +38,7 @@ type T struct {
 //  DELETE  "/api/files/"  		- Delete a file, Query Params: path - path to the directory/file ( required )
 
 func apiHandler(w http.ResponseWriter, r *http.Request) {
-
+	fmt.Printf(" REQ:" + r.URL.Path)
 	path := r.URL.Query().Get("path")
 	if path == "" {
 		path = "/"
@@ -56,20 +59,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to write JSON response", http.StatusInternalServerError)
 		}
 	case "POST":
-		if r.URL.Path == endpoint+"/upload" {
-			// upload a file
-			// return not implemented response
-			http.Error(w, "Not implemented", http.StatusNotImplemented)
-			return
-		}
-		if r.URL.Path == endpoint+"/copy" {
-			http.Error(w, "Not implemented", http.StatusNotImplemented)
-			return
-		}
-		if r.URL.Path == endpoint+"/move" {
-			http.Error(w, "Not implemented", http.StatusNotImplemented)
-			return
-		}
+
 		// create a new folder
 		err := newFolder(cfg.Workdir + path)
 		if err != nil {
@@ -108,6 +98,123 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
+}
+
+func apiHandlerUpload(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		path = "/"
+	}
+	path = filepath.Clean(path)
+
+	if r.Method != http.MethodPost {
+		http.NotFound(w, r)
+		return
+	}
+
+	multipartReader, err := r.MultipartReader()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	partBytes := int64(0)
+	partCount := int64(0)
+	for {
+		part, partErr := multipartReader.NextRawPart()
+		if partErr == io.EOF {
+			break
+		}
+		if partErr != nil {
+			http.Error(w, partErr.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if len(part.FileName()) > 0 {
+			name := part.FileName()
+			path = filepath.Clean(cfg.Workdir + path + "/" + name)
+
+			f, err := os.Create(path)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer f.Close()
+
+			bufferedWriter := bufio.NewWriter(f)
+			var lastBytesRead int
+			buffer := make([]byte, 1024*8)
+
+			var bytesWritten, partsWritten int64 = 0, 0
+			for {
+				bytesRead, berr := part.Read(buffer)
+				if berr == io.EOF {
+					break
+				} else if berr != nil {
+					http.Error(w, berr.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				_, err := bufferedWriter.Write(buffer[:bytesRead])
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				lastBytesRead = bytesRead
+				bytesWritten += int64(lastBytesRead)
+				partsWritten++
+			}
+
+			err = bufferedWriter.Flush()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			partBytes += bytesWritten
+			partCount += partsWritten
+		}
+
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	return
+}
+
+func apiHandlerCopy(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf(" REQ:" + r.URL.Path)
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		path = "/"
+	}
+	path = filepath.Clean(path)
+
+	if r.Method != http.MethodPost {
+		http.NotFound(w, r)
+		return
+	}
+
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	return
+
+}
+
+func apiHandlerMove(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf(" REQ:" + r.URL.Path)
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		path = "/"
+	}
+	path = filepath.Clean(path)
+
+	if r.Method != http.MethodPost {
+		http.NotFound(w, r)
+		return
+	}
+
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	return
+
 }
 
 func browse(path string) ([]byte, error) {
@@ -156,10 +263,6 @@ func browse(path string) ([]byte, error) {
 }
 
 func newFolder(path string) error {
-	return errors.New("not implemented")
-}
-
-func upload(path string) error {
 	return errors.New("not implemented")
 }
 

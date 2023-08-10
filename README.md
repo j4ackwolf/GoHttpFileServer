@@ -36,11 +36,10 @@ providing a flexible and convenient method for data transfer.
 of content management on the server.
 
 
-### Usage Example:
+### Build the project:
 
 ```bash
-$ go run main.go -port 8080 -dir /path/to/artifacts -https -cert /path/to/cert.pem -key /path/to/key.pem
+$ GOARCH=amd64 GOOS=linux go build -a -o ./ghfs .
 ```
-In this example, the server will run on port 8080 and serve files and directories from the /path/to/artifacts directory. Additionally, the server will support HTTPS using the certificate and private key located at /path/to/cert.pem and /path/to/key.pem, respectively.
 
-GoHttpFileServer provides a robust and efficient storage solution for distributing artifacts, build outputs, releases, and other crucial files, offering easy access to development teams during CI/CD processes and project management.
+./ghfs -c ./ghfs.conf

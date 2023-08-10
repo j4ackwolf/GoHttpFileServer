@@ -31,12 +31,14 @@ func main() {
 		}
 	}
 
-	// Http handler for the api
-	http.HandleFunc(endpoint, func(w http.ResponseWriter, r *http.Request) {
-		apiHandler(w, r)
-	})
+	// Api handlers
+	http.HandleFunc(endpoint, apiHandler)
+	http.HandleFunc(endpoint+"/upload", apiHandlerUpload)
+	http.HandleFunc(endpoint+"/download", apiHandlerUpload)
+	http.HandleFunc(endpoint+"/copy", apiHandlerCopy)
+	http.HandleFunc(endpoint+"/move", apiHandlerMove)
 
-	// Http handler for the root path "/"
+	// handler for the root path "/"
 	http.Handle("/", http.FileServer(http.Dir(cfg.Workdir)))
 
 	// Start the server
